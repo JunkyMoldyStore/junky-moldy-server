@@ -23,11 +23,11 @@ app.post("/crear-preferencia", async (req, res) => {
 
 const preference = {
   items,
-  back_urls: {
-    success: "https://TU-SITIO.com/exito.html",
-    failure: "https://TU-SITIO.com/error.html",
-    pending: "https://TU-SITIO.com/pendiente.html"
-  },
+back_urls: {
+  success: "https://junkymoldystore.github.io/junky-moldy-server/exito.html",
+  failure: "https://junkymoldystore.github.io/junky-moldy-server/error.html",
+  pending: "https://junkymoldystore.github.io/junky-moldy-server/pendiente.html"
+},
   auto_return: "approved"
 };
 
