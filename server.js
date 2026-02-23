@@ -12,22 +12,29 @@ mercadopago.configure({
 });
 
 app.post("/crear-preferencia", async (req, res) => {
+  try {
 
-  const items = req.body.map(prod => ({
-    title: prod.nombre,
-    unit_price: prod.precio,
-    quantity: prod.cantidad,
-    currency_id: "ARS"
-  }));
+    const items = req.body.map(prod => ({
+      title: prod.nombre,
+      unit_price: prod.precio,
+      quantity: prod.cantidad,
+      currency_id: "ARS"
+    }));
 
-  const preference = {
-    items,
-    auto_return: "approved"
-  };
+    const preference = {
+      items,
+      auto_return: "approved"
+    };
 
-  const response = await mercadopago.preferences.create(preference);
-  res.json({ init_point: response.body.init_point });
+    const response = await mercadopago.preferences.create(preference);
 
+    res.json({ init_point: response.body.init_point });
+
+  } catch (error) {
+    console.error("ERROR MP:", error);
+    res.status(500).json({ error: "Error creando preferencia" });
+  }
 });
 
-app.listen(3000, () => console.log("Servidor listo"));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("Servidor listo en puerto", PORT));
