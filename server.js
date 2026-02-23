@@ -18,7 +18,7 @@ app.post("/crear-preferencia", async (req, res) => {
       title: prod.nombre,
       unit_price: prod.precio,
       quantity: prod.cantidad,
-      currency_id: "ARS"
+      currency_id: "UYU"
     }));
 
     const preference = {
