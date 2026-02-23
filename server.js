@@ -14,24 +14,20 @@ mercadopago.configure({
 app.post("/crear-preferencia", async (req, res) => {
   try {
 
-    const items = [
-  {
-    title: "Producto test",
-    unit_price: 100,
-    quantity: 1,
-    currency_id: "UYU"
-  }
-];
+    const items = req.body.map(prod => ({
+  title: prod.nombre,
+  unit_price: Number(prod.precio),
+  quantity: prod.cantidad,
+  currency_id: "UYU"
+}));
 
 const preference = {
   items,
-
   back_urls: {
-success: "https://google.com",
-failure: "https://google.com",
-pending: "https://google.com"
+    success: "https://TU-SITIO.com/exito.html",
+    failure: "https://TU-SITIO.com/error.html",
+    pending: "https://TU-SITIO.com/pendiente.html"
   },
-
   auto_return: "approved"
 };
 
