@@ -23,10 +23,17 @@ app.post("/crear-preferencia", async (req, res) => {
   }
 ];
 
-    const preference = {
-      items,
-      auto_return: "approved"
-    };
+const preference = {
+  items,
+
+  back_urls: {
+success: "https://google.com",
+failure: "https://google.com",
+pending: "https://google.com"
+  },
+
+  auto_return: "approved"
+};
 
     const response = await mercadopago.preferences.create(preference);
 
