@@ -28,7 +28,8 @@ app.post("/crear-preferencia", async (req, res) => {
 
     const response = await mercadopago.preferences.create(preference);
 
-    res.json({ init_point: response.body.init_point });
+    console.log("INIT POINT:", response.body.init_point);
+res.json({ init_point: response.body.init_point });
 
   } catch (error) {
     console.error("ERROR MP:", error);
