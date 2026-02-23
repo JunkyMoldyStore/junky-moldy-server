@@ -2,26 +2,78 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Compra realizada</title>
+
 <link rel="stylesheet" href="css/styles.css">
+
+<style>
+
+/* contenedor central */
+.exito-box{
+  max-width: 520px;
+  margin: auto;
+  padding: 40px 25px;
+  text-align: center;
+
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(212,191,99,0.25);
+  box-shadow: 0 0 35px rgba(0,0,0,0.6);
+}
+
+/* título glow */
+.exito-titulo{
+  font-family: "JunkyTitle";
+  color: var(--accent);
+  font-size: 2.6rem;
+  letter-spacing: 3px;
+  margin-bottom: 25px;
+
+  text-shadow:
+    0 0 10px rgba(212,191,99,0.9),
+    0 0 25px rgba(212,191,99,0.7),
+    0 0 40px rgba(212,191,99,0.5);
+}
+
+/* texto */
+.exito-texto{
+  font-size: 1.2rem;
+  line-height: 1.6;
+  color: #e6e0c8;
+  margin-bottom: 18px;
+}
+
+.btn-volver{
+  margin-top: 30px;
+  display: inline-block;
+}
+
+</style>
 </head>
+
 <body class="catalogo">
 
-<h1 class="titulo-catalogo">¡Gracias por tu compra!</h1>
+<div class="exito-box">
 
-<p style="text-align:center; font-size:1.4rem;">
-Tu pedido fue procesado correctamente.
-</p>
+  <h1 class="exito-titulo">¡Gracias por tu compra!</h1>
 
-<p style="text-align:center; margin-top:30px;">
-En breve nos comunicaremos contigo para coordinar el envío
-</p>
+  <p class="exito-texto">
+    Tu pedido fue procesado correctamente.
+  </p>
 
-<div style="text-align:center; margin-top:40px;">
-<a href="index.html" class="btn-comprar">Volver a la tienda</a>
+  <p class="exito-texto">
+    En breve nos comunicaremos contigo para coordinar el envío.
+  </p>
+
+  <a href="https://junkymoldystore.github.io/" class="btn-comprar btn-volver">
+    Volver a la tienda
+  </a>
+
 </div>
 
 <script>
+/* vaciar carrito tras compra */
 localStorage.removeItem("carrito");
 </script>
 
