@@ -14,12 +14,14 @@ mercadopago.configure({
 app.post("/crear-preferencia", async (req, res) => {
   try {
 
-    const items = req.body.map(prod => ({
-      title: prod.nombre,
-      unit_price: prod.precio,
-      quantity: prod.cantidad,
-      currency_id: "UYU"
-    }));
+    const items = [
+  {
+    title: "Producto test",
+    unit_price: 100,
+    quantity: 1,
+    currency_id: "UYU"
+  }
+];
 
     const preference = {
       items,
@@ -31,10 +33,16 @@ app.post("/crear-preferencia", async (req, res) => {
     console.log("INIT POINT:", response.body.init_point);
 res.json({ init_point: response.body.init_point });
 
-  } catch (error) {
-    console.error("ERROR MP:", error);
-    res.status(500).json({ error: "Error creando preferencia" });
-  }
+} catch (error) {
+  console.error("❌ ERROR MP:");
+  console.error(error.message);
+  console.error(error);
+
+  res.status(500).json({
+    error: "Error creando preferencia",
+    detalle: error.message
+  });
+}
 });
 
 const PORT = process.env.PORT || 3000;
