@@ -14,7 +14,11 @@ mercadopago.configure({
 app.post("/crear-preferencia", async (req, res) => {
   try {
 
-    const { carrito, cliente, entrega } = req.body;
+    const { carrito, cliente = {}, entrega } = req.body;
+
+    if (!carrito || carrito.length === 0) {
+      return res.status(400).json({ error: "Carrito vacío" });
+    }
 
     const items = carrito.map(prod => ({
       title: prod.nombre,
@@ -27,18 +31,22 @@ app.post("/crear-preferencia", async (req, res) => {
       items,
 
       payer: {
-        name: cliente.nombre,
+        name: cliente.nombre || "Cliente",
         phone: {
-          number: cliente.telefono
+          number: cliente.telefono || ""
         },
         address: {
-          street_name: cliente.direccion,
-          city_name: cliente.ciudad
+          street_name: cliente.direccion || "",
+          city_name: cliente.ciudad || ""
         }
       },
 
       metadata: {
         entrega: entrega,
+        nombre: cliente.nombre || "",
+        telefono: cliente.telefono || "",
+        direccion: cliente.direccion || "",
+        ciudad: cliente.ciudad || "",
         notas: cliente.notas || ""
       },
 
@@ -55,12 +63,12 @@ app.post("/crear-preferencia", async (req, res) => {
 
     console.log("🧾 Compra de:", cliente.nombre);
     console.log("🚚 Entrega:", entrega);
+    console.log("🔗 INIT:", response.body.init_point);
 
     res.json({ init_point: response.body.init_point });
 
   } catch (error) {
-    console.error("❌ ERROR MP:");
-    console.error(error.message);
+    console.error("❌ ERROR MP:", error.message);
 
     res.status(500).json({
       error: "Error creando preferencia",
