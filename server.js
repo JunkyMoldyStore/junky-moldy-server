@@ -31,15 +31,16 @@ app.post("/crear-preferencia", async (req, res) => {
       items,
 
       payer: {
-        name: cliente.nombre || "Cliente",
-        phone: {
-          number: cliente.telefono || ""
-        },
-        address: {
-          street_name: cliente.direccion || "",
-          city_name: cliente.ciudad || ""
-        }
-      },
+  name: cliente.nombre,
+  phone: {
+    area_code: "598",
+    number: Number(cliente.telefono)
+  },
+  address: {
+    street_name: cliente.direccion,
+    city_name: cliente.ciudad
+  }
+},
 
       metadata: {
         entrega: entrega,
