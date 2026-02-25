@@ -8,7 +8,7 @@ app.use(cors());
 app.use(express.json());
 
 mercadopago.configure({
-  access_token: "TU_ACCESS_TOKEN"
+  access_token: "APP_USR-1000798862852425-022310-9cb4fa58b1554593f647bf25adc67eea-809124760"
 });
 
 app.post("/crear-preferencia", async (req, res) => {
