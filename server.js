@@ -112,6 +112,10 @@ app.post("/webhook", async (req, res) => {
   console.log("📩 WEBHOOK RECIBIDO");
   console.log(JSON.stringify(req.body, null, 2));
 
+  if (req.body.type === "payment") {
+    console.log("💰 ID DE PAGO:", req.body.data.id);
+  }
+
   res.sendStatus(200);
 
 });
