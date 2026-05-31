@@ -64,7 +64,7 @@ app.post("/crear-preferencia", async (req, res) => {
     };
 
     const response = await mercadopago.preferences.create(preference);
-    await fetch("https://script.google.com/macros/s/AKfycbyczxfWkxe0rYqo4-O8GzqdIeclp5WoGGpYYWt4d6MFuek7EV63KSVB_8br9lWuOA1dzw/exec", {
+    await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
   method: "POST",
   headers: {
     "Content-Type": "application/json"
