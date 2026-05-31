@@ -86,7 +86,7 @@ body: JSON.stringify({
   pago_id: "",
   estado: "Pendiente"
 })
-
+});
     console.log("🧾 Compra de:", cliente.nombre);
     console.log("🚚 Entrega:", entrega);
     console.log("🔗 INIT:", response.body.init_point);
