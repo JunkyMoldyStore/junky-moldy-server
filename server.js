@@ -66,15 +66,26 @@ app.post("/crear-preferencia", async (req, res) => {
   headers: {
     "Content-Type": "application/json"
   },
-  body: JSON.stringify({
-    nombre: cliente.nombre || "",
-    telefono: cliente.telefono || "",
-    direccion: cliente.direccion || "",
-    ciudad: cliente.ciudad || "",
-    entrega: entrega || "",
-    notas: cliente.notas || ""
-  })
-});
+body: JSON.stringify({
+  cliente: cliente.nombre || "",
+  telefono: cliente.telefono || "",
+  direccion: cliente.direccion || "",
+  ciudad: cliente.ciudad || "",
+  entrega: entrega || "",
+  notas: cliente.notas || "",
+
+  productos: carrito
+    .map(p => `${p.nombre} x${p.cantidad}`)
+    .join(", "),
+
+  total: carrito.reduce(
+    (sum, p) => sum + (p.precio * p.cantidad),
+    0
+  ),
+
+  pago_id: "",
+  estado: "Pendiente"
+})
 
     console.log("🧾 Compra de:", cliente.nombre);
     console.log("🚚 Entrega:", entrega);
