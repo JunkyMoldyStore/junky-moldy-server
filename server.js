@@ -1,6 +1,7 @@
 import express from "express";
 import mercadopago from "mercadopago";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 
@@ -61,6 +62,20 @@ app.post("/crear-preferencia", async (req, res) => {
     };
 
     const response = await mercadopago.preferences.create(preference);
+    await fetch("https://script.google.com/macros/s/AKfycbyczxfWkxe0rYqo4-O8GzqdIeclp5WoGGpYYWt4d6MFuek7EV63KSVB_8br9lWuOA1dzw/exec", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    nombre: cliente.nombre || "",
+    telefono: cliente.telefono || "",
+    direccion: cliente.direccion || "",
+    ciudad: cliente.ciudad || "",
+    entrega: entrega || "",
+    notas: cliente.notas || ""
+  })
+});
 
     console.log("🧾 Compra de:", cliente.nombre);
     console.log("🚚 Entrega:", entrega);
