@@ -114,6 +114,7 @@ app.post("/webhook", async (req, res) => {
 
   if (req.body.type === "payment") {
     console.log("💰 ID DE PAGO:", req.body.data.id);
+    console.log("MP OBJECT:", typeof mercadopago.payment);
   }
 
   res.sendStatus(200);
