@@ -16,6 +16,8 @@ app.post("/crear-preferencia", async (req, res) => {
 
     const { carrito, cliente = {}, entrega } = req.body;
 
+    const pedido_id = "JM-" + Date.now();
+
     if (!carrito || carrito.length === 0) {
       return res.status(400).json({ error: "Carrito vacío" });
     }
@@ -43,6 +45,7 @@ app.post("/crear-preferencia", async (req, res) => {
 },
 
       metadata: {
+        pedido_id: pedido_id,
         entrega: entrega,
         nombre: cliente.nombre || "",
         telefono: cliente.telefono || "",
@@ -67,6 +70,8 @@ app.post("/crear-preferencia", async (req, res) => {
     "Content-Type": "application/json"
   },
 body: JSON.stringify({
+  pedido_id: pedido_id,
+  
   cliente: cliente.nombre || "",
   telefono: cliente.telefono || "",
   direccion: cliente.direccion || "",
