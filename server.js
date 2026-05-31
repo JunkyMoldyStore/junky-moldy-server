@@ -112,9 +112,26 @@ app.post("/webhook", async (req, res) => {
   console.log("📩 WEBHOOK RECIBIDO");
   console.log(JSON.stringify(req.body, null, 2));
 
-  if (req.body.type === "payment") {
-    console.log("💰 ID DE PAGO:", req.body.data.id);
-    console.log("MP OBJECT:", typeof mercadopago.payment);
+  try {
+
+    if (req.body.type === "payment") {
+
+      const paymentId = req.body.data.id;
+
+      console.log("💰 ID DE PAGO:", paymentId);
+
+      const resultado = await mercadopago.payment.findById(paymentId);
+
+      console.log("📦 PAYMENT:");
+      console.log(JSON.stringify(resultado.body, null, 2));
+
+    }
+
+  } catch (error) {
+
+    console.error("❌ ERROR CONSULTANDO PAGO:");
+    console.error(error.message);
+
   }
 
   res.sendStatus(200);
