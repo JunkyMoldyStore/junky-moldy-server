@@ -102,6 +102,13 @@ body: JSON.stringify({
     });
   }
 });
+app.post("/webhook", async (req, res) => {
 
+  console.log("📩 WEBHOOK RECIBIDO");
+  console.log(JSON.stringify(req.body, null, 2));
+
+  res.sendStatus(200);
+
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log("Servidor listo en puerto", PORT));
