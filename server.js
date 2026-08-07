@@ -2,118 +2,88 @@ import express from "express";
 import mercadopago from "mercadopago";
 import cors from "cors";
 
-const app = express();
+const accessToken = process.env.MP_ACCESS_TOKEN;
+if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.");
 
+const app = express();
 app.use(cors());
 app.use(express.json());
 
-mercadopago.configure({
-  access_token: "APP_USR-1000798862852425-053021-d316602c63a5f7903f2ad9fb363bbfb5-809124760"
-});
+// Esta credencial vive únicamente en las variables de entorno de Render.
+mercadopago.configure({ access_token: accessToken });
 
 app.post("/crear-preferencia", async (req, res) => {
   try {
-
     const { carrito, cliente = {}, entrega } = req.body;
+    const pedidoId = `JM-${Date.now()}`;
 
-    const pedido_id = "JM-" + Date.now();
-
-    if (!carrito || carrito.length === 0) {
+    if (!Array.isArray(carrito) || carrito.length === 0) {
       return res.status(400).json({ error: "Carrito vacío" });
     }
 
-    const items = carrito.map(prod => ({
-      title: prod.nombre,
-      unit_price: Number(prod.precio),
-      quantity: prod.cantidad,
-      currency_id: "UYU"
+    const items = carrito.map((product) => ({
+      title: product.nombre,
+      unit_price: Number(product.precio),
+      quantity: Number(product.cantidad),
+      currency_id: "UYU",
     }));
+
+    if (items.some((item) => !item.title || !Number.isFinite(item.unit_price) || item.unit_price < 0 || !Number.isInteger(item.quantity) || item.quantity < 1)) {
+      return res.status(400).json({ error: "El carrito tiene datos inválidos" });
+    }
 
     const preference = {
       items,
-
       payer: {
-  name: cliente.nombre,
-  phone: {
-    area_code: "598",
-    number: Number(cliente.telefono)
-  },
-  address: {
-    street_name: cliente.direccion,
-    city_name: cliente.ciudad
-  }
-},
-
+        name: cliente.nombre,
+        phone: { area_code: "598", number: Number(cliente.telefono) },
+        address: { street_name: cliente.direccion, city_name: cliente.ciudad },
+      },
       metadata: {
-        pedido_id: pedido_id,
-        entrega: entrega,
+        pedido_id: pedidoId,
+        entrega,
         nombre: cliente.nombre || "",
         telefono: cliente.telefono || "",
         direccion: cliente.direccion || "",
         ciudad: cliente.ciudad || "",
-        notas: cliente.notas || ""
+        notas: cliente.notas || "",
       },
-
       back_urls: {
         success: "https://junkymoldystore.github.io/junky-moldy-server/exito.html",
         failure: "https://junkymoldystore.github.io/junky-moldy-server/error.html",
-        pending: "https://junkymoldystore.github.io/junky-moldy-server/pendiente.html"
+        pending: "https://junkymoldystore.github.io/junky-moldy-server/pendiente.html",
       },
-
-      auto_return: "approved"
+      auto_return: "approved",
     };
 
     const response = await mercadopago.preferences.create(preference);
     await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-body: JSON.stringify({
-  pedido_id: pedido_id,
-  
-  cliente: cliente.nombre || "",
-  telefono: cliente.telefono || "",
-  direccion: cliente.direccion || "",
-  ciudad: cliente.ciudad || "",
-  entrega: entrega || "",
-  notas: cliente.notas || "",
-
-  productos: carrito
-    .map(p => `${p.nombre} x${p.cantidad}`)
-    .join(", "),
-
-  total: carrito.reduce(
-    (sum, p) => sum + (p.precio * p.cantidad),
-    0
-  ),
-
-  pago_id: "",
-  estado: "Pendiente"
-})
-});
-    console.log("🧾 Compra de:", cliente.nombre);
-    console.log("🚚 Entrega:", entrega);
-    console.log("🔗 INIT:", response.body.init_point);
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pedido_id: pedidoId,
+        cliente: cliente.nombre || "",
+        telefono: cliente.telefono || "",
+        direccion: cliente.direccion || "",
+        ciudad: cliente.ciudad || "",
+        entrega: entrega || "",
+        notas: cliente.notas || "",
+        productos: carrito.map((product) => `${product.nombre} x${product.cantidad}`).join(", "),
+        total: carrito.reduce((sum, product) => sum + (Number(product.precio) * Number(product.cantidad)), 0),
+        pago_id: "",
+        estado: "Pendiente",
+      }),
+    });
 
     res.json({ init_point: response.body.init_point });
-
   } catch (error) {
-    console.error("❌ ERROR MP:", error.message);
-
-    res.status(500).json({
-      error: "Error creando preferencia",
-      detalle: error.message
-    });
+    console.error("Error creando preferencia:", error.message);
+    res.status(500).json({ error: "Error creando preferencia" });
   }
 });
-app.post("/webhook", async (req, res) => {
 
-  console.log("📩 WEBHOOK RECIBIDO");
-  console.log(JSON.stringify(req.body, null, 2));
+// Se completará al conectar los webhooks firmados de Mercado Pago con el CMS.
+app.post("/webhook", (_req, res) => res.sendStatus(200));
 
-  res.sendStatus(200);
-
-});
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Servidor listo en puerto", PORT));
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log("Servidor listo en puerto", port));
