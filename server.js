@@ -16,10 +16,20 @@ app.use(express.json());
 // Esta credencial vive únicamente en las variables de entorno de Render.
 mercadopago.configure({ access_token: accessToken });
 
-app.get('/resultado-prueba', (req, res) => {
+app.get('/resultado-prueba', async (req, res) => {
   if (paymentMode !== 'test') return res.sendStatus(404);
   const state = String(req.query.estado || 'pending');
-  res.type('html').send(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resultado de prueba</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#11130e;color:#f1e7b1;font:18px Georgia,serif"><main style="max-width:520px;padding:32px;border:1px solid #b99a45;background:#181a13;text-align:center"><p style="color:#d8bd54;letter-spacing:.12em">JUNKY MOLDY · PRUEBA</p><h1>Pago de prueba: ${state}</h1><p>No se realizó ningún cobro real ni se creó un pedido de venta.</p></main></body></html>`);
+  const paymentId = req.query.payment_id || req.query.collection_id;
+  if (state === 'approved' && paymentId) {
+    try {
+      const paymentResponse = await mercadopago.payment.findById(paymentId);
+      await syncOrderToCms(paymentResponse.body);
+      console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId) });
+    } catch (error) {
+      console.error('Error sincronizando pago de prueba desde retorno:', error.message);
+    }
+  }
+  res.type('html').send(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resultado de prueba</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#11130e;color:#f1e7b1;font:18px Georgia,serif"><main style="max-width:520px;padding:32px;border:1px solid #b99a45;background:#181a13;text-align:center"><p style="color:#d8bd54;letter-spacing:.12em">JUNKY MOLDY · PRUEBA</p><h1>Pago de prueba: ${state}</h1><p>${state === 'approved' && paymentId ? 'Se intentó sincronizar este pago de prueba con el CMS. Revisá Pedidos.' : 'No se realizó ningún cobro real ni se creó un pedido de venta.'}</p></main></body></html>`);
 });
 
 function webhookIsValid(req) {
@@ -27,14 +37,14 @@ function webhookIsValid(req) {
   const requestId = req.get("x-request-id") || "";
   const paymentId = String(req.query["data.id"] || req.body?.data?.id || "").toLowerCase();
   const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!signature || !paymentId || !secret) return false;
+  if (!signature || !paymentId || !secret) return { valid: false, reason: 'missing_values' };
   const values = Object.fromEntries(signature.split(",").map((part) => part.trim().split("=")).filter(([key, value]) => key && value));
-  if (!values.ts || !values.v1) return false;
+  if (!values.ts || !values.v1) return { valid: false, reason: 'incomplete_signature' };
   const template = `id:${paymentId};request-id:${requestId};ts:${values.ts};`;
   const expected = crypto.createHmac("sha256", secret).update(template).digest("hex");
   const received = Buffer.from(values.v1, "hex");
   const comparison = Buffer.from(expected, "hex");
-  return received.length === comparison.length && crypto.timingSafeEqual(received, comparison);
+  return { valid: received.length === comparison.length && crypto.timingSafeEqual(received, comparison), reason: 'invalid_signature' };
 }
 
 function paymentStatus(status) {
@@ -147,12 +157,18 @@ app.post("/crear-preferencia", async (req, res) => {
 });
 
 app.post("/webhook", async (req, res) => {
-  if (!webhookIsValid(req)) return res.sendStatus(401);
+  const verification = webhookIsValid(req);
+  if (!verification.valid) {
+    console.warn('Webhook rechazado', { reason: verification.reason, hasSignature: Boolean(req.get('x-signature')), type: req.body?.type || null });
+    return res.sendStatus(401);
+  }
   const paymentId = req.query["data.id"] || req.body?.data?.id;
   if (req.body?.type !== "payment" || !paymentId) return res.sendStatus(200);
   try {
+    console.log('Webhook de pago recibido', { paymentId: String(paymentId) });
     const paymentResponse = await mercadopago.payment.findById(paymentId);
     await syncOrderToCms(paymentResponse.body);
+    console.log('Pago sincronizado desde webhook', { paymentId: String(paymentId) });
     return res.sendStatus(200);
   } catch (error) {
     console.error("Error sincronizando pago:", error.message);

@@ -4,6 +4,7 @@
 
 ### Added
 
+- Diagnosticos seguros de webhook y sincronizacion de respaldo al volver desde un pago de prueba aprobado.
 - Modo aislado de pruebas de Mercado Pago mediante `PAYMENT_MODE=test`.
 - Página de resultado de prueba y URL de notificación configurable para validar webhooks.
 
