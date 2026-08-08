@@ -8,6 +8,9 @@ if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.")
 const paymentMode = String(process.env.PAYMENT_MODE || "production").trim().toLowerCase();
 if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE debe ser "production" o "test".');
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+// Solo para el circuito de prueba: conserva el pedido durante el checkout de
+// prueba para poder registrar el resultado sin depender de la API de pagos.
+const testOrders = new Map();
 
 const app = express();
 app.use(cors());
@@ -20,11 +23,19 @@ app.get('/resultado-prueba', async (req, res) => {
   if (paymentMode !== 'test') return res.sendStatus(404);
   const state = String(req.query.estado || 'pending');
   const paymentId = req.query.payment_id || req.query.collection_id;
+  const testOrderId = String(req.query.pedido || '');
   if (state === 'approved' && paymentId) {
     try {
-      const paymentResponse = await mercadopago.payment.findById(paymentId);
-      await syncOrderToCms(paymentResponse.body);
-      console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId) });
+      const preparedOrder = testOrders.get(testOrderId);
+      if (preparedOrder) {
+        await postOrderToCms({ ...preparedOrder, payment_id: String(paymentId), payment_status: 'approved' });
+        testOrders.delete(testOrderId);
+        console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId), testOrderId });
+      } else {
+        const paymentResponse = await mercadopago.payment.findById(paymentId);
+        await syncOrderToCms(paymentResponse.body);
+        console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId) });
+      }
     } catch (error) {
       console.error('Error sincronizando pago de prueba desde retorno:', error.message);
     }
@@ -56,11 +67,8 @@ function paymentStatus(status) {
 }
 
 async function syncOrderToCms(payment) {
-  const syncUrl = process.env.CMS_SYNC_URL;
-  const syncSecret = process.env.CMS_SYNC_SECRET;
-  if (!syncUrl || !syncSecret) throw new Error("Faltan CMS_SYNC_URL o CMS_SYNC_SECRET en Render.");
   const metadata = payment.metadata || {};
-  const payload = {
+  return postOrderToCms({
     payment_id: String(payment.id),
     reference: metadata.pedido_id || `MP-${payment.id}`,
     payment_status: paymentStatus(payment.status),
@@ -70,7 +78,13 @@ async function syncOrderToCms(payment) {
     customer_phone: metadata.telefono || "",
     delivery_type: String(metadata.entrega || "").toLowerCase().includes("env") ? "shipping" : "pickup",
     notes: metadata.notas || "",
-  };
+  });
+}
+
+async function postOrderToCms(payload) {
+  const syncUrl = process.env.CMS_SYNC_URL;
+  const syncSecret = process.env.CMS_SYNC_SECRET;
+  if (!syncUrl || !syncSecret) throw new Error("Faltan CMS_SYNC_URL o CMS_SYNC_SECRET en Render.");
   const response = await fetch(syncUrl, {
     method: "POST",
     headers: { "content-type": "application/json", "x-render-sync-secret": syncSecret },
@@ -116,10 +130,11 @@ app.post("/crear-preferencia", async (req, res) => {
         ciudad: cliente.ciudad || "",
         notas: cliente.notas || "",
       },
+      external_reference: pedidoId,
       back_urls: paymentMode === 'test' && publicBaseUrl ? {
-        success: `${publicBaseUrl}/resultado-prueba?estado=approved`,
-        failure: `${publicBaseUrl}/resultado-prueba?estado=rejected`,
-        pending: `${publicBaseUrl}/resultado-prueba?estado=pending`,
+        success: `${publicBaseUrl}/resultado-prueba?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
+        failure: `${publicBaseUrl}/resultado-prueba?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
+        pending: `${publicBaseUrl}/resultado-prueba?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
       } : {
         success: "https://junkymoldystore.github.io/junky-moldy-server/exito.html",
         failure: "https://junkymoldystore.github.io/junky-moldy-server/error.html",
@@ -129,6 +144,19 @@ app.post("/crear-preferencia", async (req, res) => {
     };
 
     if (paymentMode === 'test' && publicBaseUrl) preference.notification_url = `${publicBaseUrl}/webhook`;
+
+    if (paymentMode === 'test') {
+      testOrders.set(pedidoId, {
+        reference: pedidoId,
+        payment_status: 'pending',
+        total_cents: Math.round(carrito.reduce((sum, product) => sum + (Number(product.precio) * Number(product.cantidad)), 0) * 100),
+        customer_name: cliente.nombre || 'Cliente de prueba',
+        customer_email: cliente.email || '',
+        customer_phone: cliente.telefono || '',
+        delivery_type: String(entrega || '').toLowerCase().includes('env') ? 'shipping' : 'pickup',
+        notes: cliente.notas || '',
+      });
+    }
 
     const response = await mercadopago.preferences.create(preference);
     if (paymentMode === 'production') await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
