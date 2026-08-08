@@ -5,6 +5,9 @@ import crypto from "node:crypto";
 
 const accessToken = process.env.MP_ACCESS_TOKEN;
 if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.");
+const paymentMode = String(process.env.PAYMENT_MODE || "production").trim().toLowerCase();
+if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE debe ser "production" o "test".');
+const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 
 const app = express();
 app.use(cors());
@@ -12,6 +15,12 @@ app.use(express.json());
 
 // Esta credencial vive únicamente en las variables de entorno de Render.
 mercadopago.configure({ access_token: accessToken });
+
+app.get('/resultado-prueba', (req, res) => {
+  if (paymentMode !== 'test') return res.sendStatus(404);
+  const state = String(req.query.estado || 'pending');
+  res.type('html').send(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resultado de prueba</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#11130e;color:#f1e7b1;font:18px Georgia,serif"><main style="max-width:520px;padding:32px;border:1px solid #b99a45;background:#181a13;text-align:center"><p style="color:#d8bd54;letter-spacing:.12em">JUNKY MOLDY · PRUEBA</p><h1>Pago de prueba: ${state}</h1><p>No se realizó ningún cobro real ni se creó un pedido de venta.</p></main></body></html>`);
+});
 
 function webhookIsValid(req) {
   const signature = req.get("x-signature");
@@ -63,7 +72,7 @@ async function syncOrderToCms(payment) {
 app.post("/crear-preferencia", async (req, res) => {
   try {
     const { carrito, cliente = {}, entrega } = req.body;
-    const pedidoId = `JM-${Date.now()}`;
+    const pedidoId = `${paymentMode === 'test' ? 'TEST-' : ''}JM-${Date.now()}`;
 
     if (!Array.isArray(carrito) || carrito.length === 0) {
       return res.status(400).json({ error: "Carrito vacío" });
@@ -89,6 +98,7 @@ app.post("/crear-preferencia", async (req, res) => {
       },
       metadata: {
         pedido_id: pedidoId,
+        payment_mode: paymentMode,
         entrega,
         nombre: cliente.nombre || "",
         telefono: cliente.telefono || "",
@@ -96,7 +106,11 @@ app.post("/crear-preferencia", async (req, res) => {
         ciudad: cliente.ciudad || "",
         notas: cliente.notas || "",
       },
-      back_urls: {
+      back_urls: paymentMode === 'test' && publicBaseUrl ? {
+        success: `${publicBaseUrl}/resultado-prueba?estado=approved`,
+        failure: `${publicBaseUrl}/resultado-prueba?estado=rejected`,
+        pending: `${publicBaseUrl}/resultado-prueba?estado=pending`,
+      } : {
         success: "https://junkymoldystore.github.io/junky-moldy-server/exito.html",
         failure: "https://junkymoldystore.github.io/junky-moldy-server/error.html",
         pending: "https://junkymoldystore.github.io/junky-moldy-server/pendiente.html",
@@ -104,8 +118,10 @@ app.post("/crear-preferencia", async (req, res) => {
       auto_return: "approved",
     };
 
+    if (paymentMode === 'test' && publicBaseUrl) preference.notification_url = `${publicBaseUrl}/webhook`;
+
     const response = await mercadopago.preferences.create(preference);
-    await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
+    if (paymentMode === 'production') await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -123,7 +139,7 @@ app.post("/crear-preferencia", async (req, res) => {
       }),
     });
 
-    res.json({ init_point: response.body.init_point });
+    res.json({ init_point: response.body.init_point, payment_mode: paymentMode });
   } catch (error) {
     console.error("Error creando preferencia:", error.message);
     res.status(500).json({ error: "Error creando preferencia" });
