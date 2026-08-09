@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- Cuando se elige retiro en persona, el servidor descarta dirección, ciudad y notas para que datos de un envío anterior nunca se asocien al nuevo pedido.
 - La simulación oficial de Webhooks de Mercado Pago responde exitosamente sin intentar consultar su identificador ficticio `123456` como si fuera un pago real.
 - El webhook de Mercado Pago ahora valida exclusivamente el `data.id` firmado en la URL y responde correctamente a comprobaciones incompletas, sin generar reintentos innecesarios.
 - Se eliminan espacios accidentales al leer la firma secreta de Render y se registran únicamente indicadores técnicos seguros cuando una firma es rechazada.

@@ -152,6 +152,13 @@ app.post("/crear-preferencia", async (req, res) => {
   try {
     const { carrito, cliente = {}, entrega } = req.body;
     const pedidoId = `${paymentMode === 'test' ? 'TEST-' : ''}JM-${Date.now()}`;
+    const isShipping = String(entrega || '').trim().toLowerCase().includes('env');
+    // Nunca conservar datos de envío cuando la persona eligió retiro.
+    if (!isShipping) {
+      cliente.direccion = '';
+      cliente.ciudad = '';
+      cliente.notas = '';
+    }
     // Diagnóstico temporal y seguro: confirma la llegada de los campos sin
     // registrar nombres, teléfonos, direcciones ni ningún otro dato privado.
     console.info('Checkout recibido', {
