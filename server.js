@@ -46,10 +46,16 @@ app.get('/resultado-prueba', async (req, res) => {
 function webhookIsValid(req) {
   const signature = req.get("x-signature");
   const requestId = req.get("x-request-id") || "";
-  const paymentId = String(req.query["data.id"] || req.body?.data?.id || "").toLowerCase();
+  // Mercado Pago firma el identificador que llega en la URL (`data.id`).
+  // No usamos el cuerpo como reemplazo: las notificaciones de comprobación
+  // pueden traer un cuerpo incompleto y no representan un pago procesable.
+  const paymentId = String(req.query["data.id"] || "").toLowerCase();
   const secret = process.env.MP_WEBHOOK_SECRET;
   if (!signature || !paymentId || !secret) return { valid: false, reason: 'missing_values' };
-  const values = Object.fromEntries(signature.split(",").map((part) => part.trim().split("=")).filter(([key, value]) => key && value));
+  const values = Object.fromEntries(signature.split(",").map((part) => {
+    const separator = part.indexOf("=");
+    return separator === -1 ? [] : [part.slice(0, separator).trim(), part.slice(separator + 1).trim()];
+  }).filter(([key, value]) => key && value));
   if (!values.ts || !values.v1) return { valid: false, reason: 'incomplete_signature' };
   const template = `id:${paymentId};request-id:${requestId};ts:${values.ts};`;
   const expected = crypto.createHmac("sha256", secret).update(template).digest("hex");
@@ -246,15 +252,18 @@ app.post("/crear-preferencia", async (req, res) => {
 app.post("/webhook", async (req, res) => {
   const type = String(req.body?.type || req.query.type || req.query.topic || '').toLowerCase();
   // Mercado Pago puede enviar comprobaciones sin datos de pago. Se ignoran sin
-  // responder 401, pero un pago real siempre debe pasar la firma HMAC.
+  // responder error, pero un pago real siempre debe pasar la firma HMAC.
   if (type !== 'payment') return res.sendStatus(200);
+  const paymentId = String(req.query["data.id"] || '');
+  if (!paymentId) {
+    console.info('Webhook de comprobación ignorado', { type, hasSignature: Boolean(req.get('x-signature')) });
+    return res.sendStatus(200);
+  }
   const verification = webhookIsValid(req);
   if (!verification.valid) {
     console.warn('Webhook rechazado', { reason: verification.reason, hasSignature: Boolean(req.get('x-signature')), type });
     return res.sendStatus(401);
   }
-  const paymentId = req.query["data.id"] || req.body?.data?.id;
-  if (!paymentId) return res.sendStatus(200);
   try {
     console.log('Webhook de pago recibido', { paymentId: String(paymentId) });
     const paymentResponse = await mercadopago.payment.findById(paymentId);
