@@ -134,6 +134,15 @@ app.post("/crear-preferencia", async (req, res) => {
   try {
     const { carrito, cliente = {}, entrega } = req.body;
     const pedidoId = `${paymentMode === 'test' ? 'TEST-' : ''}JM-${Date.now()}`;
+    // Diagnóstico temporal y seguro: confirma la llegada de los campos sin
+    // registrar nombres, teléfonos, direcciones ni ningún otro dato privado.
+    console.info('Checkout recibido', {
+      pedidoId,
+      delivery_type: entrega || '',
+      has_address: Boolean(String(cliente.direccion || '').trim()),
+      has_city: Boolean(String(cliente.ciudad || '').trim()),
+      has_notes: Boolean(String(cliente.notas || '').trim()),
+    });
 
     if (!Array.isArray(carrito) || carrito.length === 0) {
       return res.status(400).json({ error: "Carrito vacío" });
@@ -197,7 +206,14 @@ app.post("/crear-preferencia", async (req, res) => {
       };
       // Persistir antes de redirigir a Mercado Pago evita perder datos del
       // formulario si Render se reinicia o el webhook llega con datos parciales.
-      await postOrderToCms(checkoutOrder);
+      const pendingSync = await postOrderToCms(checkoutOrder);
+      console.info('Pedido de prueba pendiente guardado en CMS', {
+        pedidoId,
+        created: Boolean(pendingSync.created),
+        updated: Boolean(pendingSync.updated),
+        has_address: Boolean(checkoutOrder.shipping_address.address),
+        has_city: Boolean(checkoutOrder.shipping_address.city),
+      });
       testOrders.set(pedidoId, checkoutOrder);
     }
 

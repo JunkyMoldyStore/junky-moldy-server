@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Se agregó diagnóstico seguro para confirmar si dirección y ciudad llegan desde el checkout de prueba, sin escribir datos personales en los logs.
+
 ### Changed
 
 - Las alertas de Telegram y email incluyen teléfono y correo del comprador cuando el checkout los recibió.
