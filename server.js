@@ -207,7 +207,10 @@ app.post("/crear-preferencia", async (req, res) => {
       auto_return: "approved",
     };
 
-    if (paymentMode === 'test' && publicBaseUrl) preference.notification_url = `${publicBaseUrl}/webhook`;
+    // La URL y la firma del webhook se administran desde Mercado Pago
+    // (configuración de pruebas o producción). No se fuerzan por preferencia:
+    // esa prioridad puede apuntar a una configuración distinta de la que emitió
+    // la Secret signature guardada en Render.
 
     if (paymentMode === 'test') {
       const checkoutOrder = {

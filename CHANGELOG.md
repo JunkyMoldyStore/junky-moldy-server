@@ -6,6 +6,7 @@
 
 - El webhook de Mercado Pago ahora valida exclusivamente el `data.id` firmado en la URL y responde correctamente a comprobaciones incompletas, sin generar reintentos innecesarios.
 - Se eliminan espacios accidentales al leer la firma secreta de Render y se registran únicamente indicadores técnicos seguros cuando una firma es rechazada.
+- Las preferencias ya no reemplazan la URL de Webhooks configurada en Mercado Pago; pruebas y producción usan así la URL y firma definidas en cada entorno.
 - Se agregó diagnóstico seguro para confirmar si dirección y ciudad llegan desde el checkout de prueba, sin escribir datos personales en los logs.
 
 ### Changed
