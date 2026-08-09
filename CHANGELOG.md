@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Las alertas de Telegram y email incluyen teléfono y correo del comprador cuando el checkout los recibió.
+
 ### Added
 
 - Avisos opcionales de pagos aprobados por Telegram y correo, configurados exclusivamente mediante secretos de Render.

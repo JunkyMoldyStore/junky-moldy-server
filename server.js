@@ -99,7 +99,8 @@ async function postOrderToCms(payload) {
 function orderNotificationText(payload) {
   const testLabel = String(payload.reference || '').startsWith('TEST-') ? '[PRUEBA] ' : '';
   const amount = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format((Number(payload.total_cents) || 0) / 100);
-  return `${testLabel}Pago aprobado\nPedido: ${payload.reference}\nImporte: ${amount}\nEntrega: ${payload.delivery_type === 'shipping' ? 'Envio' : 'Retiro'}\nCliente: ${payload.customer_name || 'Sin nombre'}\nRevisa el CMS para ver el detalle.`;
+  const contact = [payload.customer_phone ? `Teléfono: ${payload.customer_phone}` : '', payload.customer_email ? `Email: ${payload.customer_email}` : ''].filter(Boolean).join('\n');
+  return `${testLabel}Pago aprobado\nPedido: ${payload.reference}\nImporte: ${amount}\nEntrega: ${payload.delivery_type === 'shipping' ? 'Envio' : 'Retiro'}\nCliente: ${payload.customer_name || 'Sin nombre'}${contact ? `\n${contact}` : ''}\nRevisa el CMS para ver el detalle.`;
 }
 
 async function notifyApprovedOrder(payload) {
