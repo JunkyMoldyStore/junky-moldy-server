@@ -6,6 +6,7 @@
 
 - Las alertas de Telegram y email incluyen teléfono y correo del comprador cuando el checkout los recibió.
 - Las alertas y la sincronización de pedidos conservan la dirección indicada y las notas adicionales del checkout.
+- En pruebas, el pedido se guarda como pendiente antes de abrir Mercado Pago; así dirección y ciudad no dependen de la memoria temporal de Render ni del contenido parcial del webhook.
 
 ### Added
 

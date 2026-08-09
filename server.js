@@ -93,7 +93,7 @@ async function postOrderToCms(payload) {
   });
   if (!response.ok) throw new Error(`CMS respondió ${response.status}`);
   const result = await response.json().catch(() => ({}));
-  if (result.created && payload.payment_status === 'approved') await notifyApprovedOrder(payload);
+  if ((result.created || result.became_approved) && payload.payment_status === 'approved') await notifyApprovedOrder(payload);
   return result;
 }
 
@@ -183,7 +183,8 @@ app.post("/crear-preferencia", async (req, res) => {
     if (paymentMode === 'test' && publicBaseUrl) preference.notification_url = `${publicBaseUrl}/webhook`;
 
     if (paymentMode === 'test') {
-      testOrders.set(pedidoId, {
+      const checkoutOrder = {
+        payment_id: `pending:${pedidoId}`,
         reference: pedidoId,
         payment_status: 'pending',
         total_cents: Math.round(carrito.reduce((sum, product) => sum + (Number(product.precio) * Number(product.cantidad)), 0) * 100),
@@ -193,7 +194,11 @@ app.post("/crear-preferencia", async (req, res) => {
         shipping_address: { address: cliente.direccion || '', city: cliente.ciudad || '' },
         delivery_type: String(entrega || '').toLowerCase().includes('env') ? 'shipping' : 'pickup',
         notes: cliente.notas || '',
-      });
+      };
+      // Persistir antes de redirigir a Mercado Pago evita perder datos del
+      // formulario si Render se reinicia o el webhook llega con datos parciales.
+      await postOrderToCms(checkoutOrder);
+      testOrders.set(pedidoId, checkoutOrder);
     }
 
     const response = await mercadopago.preferences.create(preference);
