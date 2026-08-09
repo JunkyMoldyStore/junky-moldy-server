@@ -7,7 +7,7 @@ Configurá solo en ese servicio estas variables de entorno:
 - `MP_ACCESS_TOKEN`: Access Token de **prueba** de Mercado Pago.
 - `MP_WEBHOOK_SECRET`: secreto de webhook de Mercado Pago.
 - `CMS_SYNC_URL`: `https://junky-moldy-cms.junkymoldy.workers.dev/api/integrations/mercadopago/orders`.
-- `CMS_SYNC_SECRET`: el mismo valor que `RENDER_SYNC_SECRET` del Worker de Cloudflare.
+- `CMS_SYNC_SECRET`: el mismo valor que `RENDER_TEST_SYNC_SECRET` del Worker de Cloudflare.
 - `PAYMENT_MODE`: `test`.
 - `PUBLIC_BASE_URL`: URL pública del nuevo servicio de Render, por ejemplo `https://junky-moldy-server-test.onrender.com`.
 

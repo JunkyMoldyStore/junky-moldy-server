@@ -91,6 +91,40 @@ async function postOrderToCms(payload) {
     body: JSON.stringify(payload),
   });
   if (!response.ok) throw new Error(`CMS respondió ${response.status}`);
+  const result = await response.json().catch(() => ({}));
+  if (result.created && payload.payment_status === 'approved') await notifyApprovedOrder(payload);
+  return result;
+}
+
+function orderNotificationText(payload) {
+  const testLabel = String(payload.reference || '').startsWith('TEST-') ? '[PRUEBA] ' : '';
+  const amount = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format((Number(payload.total_cents) || 0) / 100);
+  return `${testLabel}Pago aprobado\nPedido: ${payload.reference}\nImporte: ${amount}\nEntrega: ${payload.delivery_type === 'shipping' ? 'Envio' : 'Retiro'}\nCliente: ${payload.customer_name || 'Sin nombre'}\nRevisa el CMS para ver el detalle.`;
+}
+
+async function notifyApprovedOrder(payload) {
+  const text = orderNotificationText(payload);
+  const tasks = [];
+  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_CHAT_ID;
+  if (telegramToken && telegramChatId) tasks.push(
+    fetch(`https://api.telegram.org/bot${telegramToken}/sendMessage`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ chat_id: telegramChatId, text }),
+    }).then((response) => { if (!response.ok) throw new Error(`Telegram failed with ${response.status}`); }),
+  );
+  const resendKey = process.env.RESEND_API_KEY;
+  const notificationEmail = process.env.ORDER_NOTIFICATION_EMAIL;
+  const resendFrom = process.env.RESEND_FROM_EMAIL;
+  if (resendKey && notificationEmail && resendFrom) tasks.push(
+    fetch('https://api.resend.com/emails', {
+      method: 'POST', headers: { authorization: `Bearer ${resendKey}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ from: resendFrom, to: [notificationEmail], subject: `${String(payload.reference || '').startsWith('TEST-') ? '[PRUEBA] ' : ''}Nuevo pago aprobado`, text }),
+    }).then((response) => { if (!response.ok) throw new Error(`Email failed with ${response.status}`); }),
+  );
+  if (!tasks.length) return;
+  const results = await Promise.allSettled(tasks);
+  for (const result of results) if (result.status === 'rejected') console.error('No se pudo enviar una notificacion:', result.reason.message);
 }
 
 app.post("/crear-preferencia", async (req, res) => {
@@ -185,13 +219,17 @@ app.post("/crear-preferencia", async (req, res) => {
 });
 
 app.post("/webhook", async (req, res) => {
+  const type = String(req.body?.type || req.query.type || req.query.topic || '').toLowerCase();
+  // Mercado Pago puede enviar comprobaciones sin datos de pago. Se ignoran sin
+  // responder 401, pero un pago real siempre debe pasar la firma HMAC.
+  if (type !== 'payment') return res.sendStatus(200);
   const verification = webhookIsValid(req);
   if (!verification.valid) {
-    console.warn('Webhook rechazado', { reason: verification.reason, hasSignature: Boolean(req.get('x-signature')), type: req.body?.type || null });
+    console.warn('Webhook rechazado', { reason: verification.reason, hasSignature: Boolean(req.get('x-signature')), type });
     return res.sendStatus(401);
   }
   const paymentId = req.query["data.id"] || req.body?.data?.id;
-  if (req.body?.type !== "payment" || !paymentId) return res.sendStatus(200);
+  if (!paymentId) return res.sendStatus(200);
   try {
     console.log('Webhook de pago recibido', { paymentId: String(paymentId) });
     const paymentResponse = await mercadopago.payment.findById(paymentId);

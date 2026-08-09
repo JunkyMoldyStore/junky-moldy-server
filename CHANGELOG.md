@@ -4,6 +4,7 @@
 
 ### Added
 
+- Avisos opcionales de pagos aprobados por Telegram y correo, configurados exclusivamente mediante secretos de Render.
 - Diagnosticos seguros de webhook y sincronizacion de respaldo al volver desde un pago de prueba aprobado.
 - En pruebas, se conserva el pedido temporalmente durante el checkout para sincronizar el retorno aprobado sin depender de una consulta a Mercado Pago.
 - Modo aislado de pruebas de Mercado Pago mediante `PAYMENT_MODE=test`.
