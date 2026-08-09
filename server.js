@@ -50,18 +50,30 @@ function webhookIsValid(req) {
   // No usamos el cuerpo como reemplazo: las notificaciones de comprobación
   // pueden traer un cuerpo incompleto y no representan un pago procesable.
   const paymentId = String(req.query["data.id"] || "").toLowerCase();
-  const secret = process.env.MP_WEBHOOK_SECRET;
-  if (!signature || !paymentId || !secret) return { valid: false, reason: 'missing_values' };
+  // `trim()` evita que un salto de línea accidental al pegar el secreto en
+  // Render invalide todas las firmas sin cambiar la clave real.
+  const secret = String(process.env.MP_WEBHOOK_SECRET || "").trim();
+  if (!signature || !paymentId || !secret) {
+    return { valid: false, reason: 'missing_values', hasRequestId: Boolean(requestId), hasPaymentId: Boolean(paymentId) };
+  }
   const values = Object.fromEntries(signature.split(",").map((part) => {
     const separator = part.indexOf("=");
     return separator === -1 ? [] : [part.slice(0, separator).trim(), part.slice(separator + 1).trim()];
   }).filter(([key, value]) => key && value));
-  if (!values.ts || !values.v1) return { valid: false, reason: 'incomplete_signature' };
+  if (!values.ts || !values.v1) {
+    return { valid: false, reason: 'incomplete_signature', hasRequestId: Boolean(requestId), hasPaymentId: Boolean(paymentId) };
+  }
   const template = `id:${paymentId};request-id:${requestId};ts:${values.ts};`;
   const expected = crypto.createHmac("sha256", secret).update(template).digest("hex");
   const received = Buffer.from(values.v1, "hex");
   const comparison = Buffer.from(expected, "hex");
-  return { valid: received.length === comparison.length && crypto.timingSafeEqual(received, comparison), reason: 'invalid_signature' };
+  return {
+    valid: received.length === comparison.length && crypto.timingSafeEqual(received, comparison),
+    reason: 'invalid_signature',
+    hasRequestId: Boolean(requestId),
+    hasPaymentId: Boolean(paymentId),
+    hasTimestamp: Boolean(values.ts),
+  };
 }
 
 function paymentStatus(status) {
@@ -261,7 +273,14 @@ app.post("/webhook", async (req, res) => {
   }
   const verification = webhookIsValid(req);
   if (!verification.valid) {
-    console.warn('Webhook rechazado', { reason: verification.reason, hasSignature: Boolean(req.get('x-signature')), type });
+    console.warn('Webhook rechazado', {
+      reason: verification.reason,
+      hasSignature: Boolean(req.get('x-signature')),
+      hasRequestId: verification.hasRequestId,
+      hasPaymentId: verification.hasPaymentId,
+      hasTimestamp: verification.hasTimestamp,
+      type,
+    });
     return res.sendStatus(401);
   }
   try {
