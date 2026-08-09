@@ -4,6 +4,7 @@
 
 ### Fixed
 
+- La simulación oficial de Webhooks de Mercado Pago responde exitosamente sin intentar consultar su identificador ficticio `123456` como si fuera un pago real.
 - El webhook de Mercado Pago ahora valida exclusivamente el `data.id` firmado en la URL y responde correctamente a comprobaciones incompletas, sin generar reintentos innecesarios.
 - Se eliminan espacios accidentales al leer la firma secreta de Render y se registran únicamente indicadores técnicos seguros cuando una firma es rechazada.
 - Las preferencias ya no reemplazan la URL de Webhooks configurada en Mercado Pago; pruebas y producción usan así la URL y firma definidas en cada entorno.

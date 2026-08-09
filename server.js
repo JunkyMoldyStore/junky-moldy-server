@@ -286,6 +286,13 @@ app.post("/webhook", async (req, res) => {
     });
     return res.sendStatus(401);
   }
+  // El botón "Simular notificación" de Mercado Pago utiliza el identificador
+  // ficticio 123456. La firma es válida, pero no existe un pago recuperable
+  // mediante la API, por lo que confirmamos la entrega sin crear un pedido.
+  if (paymentId === '123456') {
+    console.info('Simulación de webhook confirmada', { paymentId });
+    return res.sendStatus(200);
+  }
   try {
     console.log('Webhook de pago recibido', { paymentId: String(paymentId) });
     const paymentResponse = await mercadopago.payment.findById(paymentId);
