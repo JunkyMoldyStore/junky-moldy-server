@@ -76,6 +76,7 @@ async function syncOrderToCms(payment) {
     customer_name: metadata.nombre || payment.payer?.first_name || "Cliente Mercado Pago",
     customer_email: payment.payer?.email || "",
     customer_phone: metadata.telefono || "",
+    shipping_address: { address: metadata.direccion || "", city: metadata.ciudad || "" },
     delivery_type: String(metadata.entrega || "").toLowerCase().includes("env") ? "shipping" : "pickup",
     notes: metadata.notas || "",
   });
@@ -99,8 +100,9 @@ async function postOrderToCms(payload) {
 function orderNotificationText(payload) {
   const testLabel = String(payload.reference || '').startsWith('TEST-') ? '[PRUEBA] ' : '';
   const amount = new Intl.NumberFormat('es-UY', { style: 'currency', currency: 'UYU' }).format((Number(payload.total_cents) || 0) / 100);
-  const contact = [payload.customer_phone ? `Teléfono: ${payload.customer_phone}` : '', payload.customer_email ? `Email: ${payload.customer_email}` : ''].filter(Boolean).join('\n');
-  return `${testLabel}Pago aprobado\nPedido: ${payload.reference}\nImporte: ${amount}\nEntrega: ${payload.delivery_type === 'shipping' ? 'Envio' : 'Retiro'}\nCliente: ${payload.customer_name || 'Sin nombre'}${contact ? `\n${contact}` : ''}\nRevisa el CMS para ver el detalle.`;
+  const address = [payload.shipping_address?.address, payload.shipping_address?.city].filter(Boolean).join(', ');
+  const details = [payload.customer_phone ? `Teléfono: ${payload.customer_phone}` : '', payload.customer_email ? `Email: ${payload.customer_email}` : '', address ? `Dirección: ${address}` : '', payload.notes ? `Notas: ${payload.notes}` : ''].filter(Boolean).join('\n');
+  return `${testLabel}Pago aprobado\nPedido: ${payload.reference}\nImporte: ${amount}\nEntrega: ${payload.delivery_type === 'shipping' ? 'Envio' : 'Retiro'}\nCliente: ${payload.customer_name || 'Sin nombre'}${details ? `\n${details}` : ''}\nRevisa el CMS para ver el detalle.`;
 }
 
 async function notifyApprovedOrder(payload) {
@@ -188,6 +190,7 @@ app.post("/crear-preferencia", async (req, res) => {
         customer_name: cliente.nombre || 'Cliente de prueba',
         customer_email: cliente.email || '',
         customer_phone: cliente.telefono || '',
+        shipping_address: { address: cliente.direccion || '', city: cliente.ciudad || '' },
         delivery_type: String(entrega || '').toLowerCase().includes('env') ? 'shipping' : 'pickup',
         notes: cliente.notas || '',
       });

@@ -5,6 +5,7 @@
 ### Changed
 
 - Las alertas de Telegram y email incluyen teléfono y correo del comprador cuando el checkout los recibió.
+- Las alertas y la sincronización de pedidos conservan la dirección indicada y las notas adicionales del checkout.
 
 ### Added
 
