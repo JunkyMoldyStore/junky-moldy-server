@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+### Security
+
+- El backend restringe CORS a los orígenes publicados, la vista previa del CMS y entornos locales/LAN; se pueden agregar dominios futuros mediante `ALLOWED_ORIGINS` sin incluir secretos.
+- Las solicitudes JSON se limitan a 100 KB y los errores de origen, tamaño o formato se responden de forma controlada.
+- Se documentó como requisito antes de producción que los precios y el stock deben validarse contra el CMS al integrar la web pública definitiva; el carrito histórico aún los envía desde el navegador.
+
 ### Fixed
 
 - Cuando se elige retiro en persona, el servidor descarta dirección, ciudad y notas para que datos de un envío anterior nunca se asocien al nuevo pedido.

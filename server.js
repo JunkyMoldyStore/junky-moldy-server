@@ -8,13 +8,39 @@ if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.")
 const paymentMode = String(process.env.PAYMENT_MODE || "production").trim().toLowerCase();
 if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE debe ser "production" o "test".');
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+const trustedOrigins = new Set([
+  'https://junkymoldystore.github.io',
+  'https://junky-moldy-cms.junkymoldy.workers.dev',
+  ...String(process.env.ALLOWED_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean),
+]);
 // Solo para el circuito de prueba: conserva el pedido durante el checkout de
 // prueba para poder registrar el resultado sin depender de la API de pagos.
 const testOrders = new Map();
 
+function isLocalPreviewOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'http:') return false;
+    const host = url.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') return true;
+    if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(host) || /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host)) return true;
+    const private172 = host.match(/^172\.(\d{1,3})\.\d{1,3}\.\d{1,3}$/);
+    return Boolean(private172 && Number(private172[1]) >= 16 && Number(private172[1]) <= 31);
+  } catch {
+    return false;
+  }
+}
+
 const app = express();
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || trustedOrigins.has(origin) || isLocalPreviewOrigin(origin)) return callback(null, true);
+    return callback(new Error('Origen no permitido'));
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type'],
+}));
+app.use(express.json({ limit: '100kb' }));
 
 // Esta credencial vive únicamente en las variables de entorno de Render.
 mercadopago.configure({ access_token: accessToken });
@@ -310,6 +336,14 @@ app.post("/webhook", async (req, res) => {
     console.error("Error sincronizando pago:", error.message);
     return res.sendStatus(500);
   }
+});
+
+app.use((error, req, res, next) => {
+  if (error?.type === 'entity.too.large') return res.status(413).json({ error: 'Solicitud demasiado grande' });
+  if (error?.type === 'entity.parse.failed') return res.status(400).json({ error: 'JSON inválido' });
+  if (error?.message === 'Origen no permitido') return res.status(403).json({ error: 'Origen no permitido' });
+  console.error('Error no controlado:', error?.message);
+  return res.status(500).json({ error: 'Error interno' });
 });
 
 const port = process.env.PORT || 3000;
