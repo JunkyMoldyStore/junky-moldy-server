@@ -7,6 +7,8 @@ const accessToken = process.env.MP_ACCESS_TOKEN;
 if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.");
 const paymentMode = String(process.env.PAYMENT_MODE || "production").trim().toLowerCase();
 if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE debe ser "production" o "test".');
+const webhookDiagnostics = paymentMode === 'test'
+  && String(process.env.WEBHOOK_DIAGNOSTICS || '').trim().toLowerCase() === 'true';
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
 if (paymentMode === 'test' && !publicBaseUrl) throw new Error('Falta configurar PUBLIC_BASE_URL en Render para PAYMENT_MODE=test.');
 const trustedOrigins = new Set([
@@ -295,6 +297,14 @@ app.post("/webhook", async (req, res) => {
   }
   const verification = webhookIsValid(req);
   if (!verification.valid) {
+    if (webhookDiagnostics) {
+      console.warn('Diagnóstico temporal de firma inválida', {
+        xSignature: req.get('x-signature') || '',
+        xRequestId: req.get('x-request-id') || '',
+        originalUrl: req.originalUrl,
+        dataId: req.query['data.id'] || '',
+      });
+    }
     console.warn('Webhook rechazado', {
       reason: verification.reason,
       hasSignature: Boolean(req.get('x-signature')),

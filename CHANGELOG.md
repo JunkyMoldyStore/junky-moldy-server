@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- Se agregó diagnóstico temporal de firmas inválidas, habilitado únicamente con `PAYMENT_MODE=test` y `WEBHOOK_DIAGNOSTICS=true`, que registra encabezados y URL técnicos recibidos sin exponer secretos, credenciales, cuerpo del pedido ni datos personales; producción no cambia.
 - Las preferencias de prueba agregan `source_news=webhooks` a `notification_url` para que Mercado Pago envíe Webhooks firmados en lugar de notificaciones IPN; producción no cambia.
 - En `PAYMENT_MODE=test`, la validación manual de Webhooks replica el validador oficial actual de Node: conserva exactamente `data.id`, normaliza las claves de `x-signature`, omite campos ausentes del manifiesto y mantiene la comparación HMAC-SHA256 en tiempo constante. Producción conserva su comportamiento anterior.
 - Las preferencias creadas con `PAYMENT_MODE=test` requieren `PUBLIC_BASE_URL` e incluyen `notification_url` apuntando a `${PUBLIC_BASE_URL}/webhook?source_news=webhooks`; las preferencias de producción continúan usando exclusivamente la URL configurada en Mercado Pago.
