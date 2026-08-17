@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- En `PAYMENT_MODE=test`, la validación manual de Webhooks replica el validador oficial actual de Node: conserva exactamente `data.id`, normaliza las claves de `x-signature`, omite campos ausentes del manifiesto y mantiene la comparación HMAC-SHA256 en tiempo constante. Producción conserva su comportamiento anterior.
 - Las preferencias creadas con `PAYMENT_MODE=test` requieren `PUBLIC_BASE_URL` e incluyen `notification_url` apuntando a `${PUBLIC_BASE_URL}/webhook`; las preferencias de producción continúan usando exclusivamente la URL configurada en Mercado Pago.
 - La validación de firmas de Webhooks ahora omite `request-id` del manifiesto HMAC cuando Mercado Pago no envía ese encabezado, según el comportamiento del SDK oficial. Esto evita rechazar con 401 pagos legítimos de Checkout Pro en modo prueba, sin aceptar firmas inválidas.
 - Cuando se elige retiro en persona, el servidor descarta dirección, ciudad y notas para que datos de un envío anterior nunca se asocien al nuevo pedido.
