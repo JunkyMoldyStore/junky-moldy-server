@@ -10,12 +10,13 @@
 
 ### Fixed
 
+- Las preferencias creadas con `PAYMENT_MODE=test` requieren `PUBLIC_BASE_URL` e incluyen `notification_url` apuntando a `${PUBLIC_BASE_URL}/webhook`; las preferencias de producción continúan usando exclusivamente la URL configurada en Mercado Pago.
 - La validación de firmas de Webhooks ahora omite `request-id` del manifiesto HMAC cuando Mercado Pago no envía ese encabezado, según el comportamiento del SDK oficial. Esto evita rechazar con 401 pagos legítimos de Checkout Pro en modo prueba, sin aceptar firmas inválidas.
 - Cuando se elige retiro en persona, el servidor descarta dirección, ciudad y notas para que datos de un envío anterior nunca se asocien al nuevo pedido.
 - La simulación oficial de Webhooks de Mercado Pago responde exitosamente sin intentar consultar su identificador ficticio `123456` como si fuera un pago real.
 - El webhook de Mercado Pago ahora valida exclusivamente el `data.id` firmado en la URL y responde correctamente a comprobaciones incompletas, sin generar reintentos innecesarios.
 - Se eliminan espacios accidentales al leer la firma secreta de Render y se registran únicamente indicadores técnicos seguros cuando una firma es rechazada.
-- Las preferencias ya no reemplazan la URL de Webhooks configurada en Mercado Pago; pruebas y producción usan así la URL y firma definidas en cada entorno.
+- Las preferencias de producción no reemplazan la URL de Webhooks configurada en Mercado Pago; el modo de prueba define su URL por preferencia para asegurar que las notificaciones lleguen al servicio de pruebas.
 - Se agregó diagnóstico seguro para confirmar si dirección y ciudad llegan desde el checkout de prueba, sin escribir datos personales en los logs.
 
 ### Changed

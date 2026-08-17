@@ -8,6 +8,7 @@ if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.")
 const paymentMode = String(process.env.PAYMENT_MODE || "production").trim().toLowerCase();
 if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE debe ser "production" o "test".');
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+if (paymentMode === 'test' && !publicBaseUrl) throw new Error('Falta configurar PUBLIC_BASE_URL en Render para PAYMENT_MODE=test.');
 const trustedOrigins = new Set([
   'https://junkymoldystore.github.io',
   'https://junky-moldy-cms.junkymoldy.workers.dev',
@@ -246,10 +247,12 @@ app.post("/crear-preferencia", async (req, res) => {
       auto_return: "approved",
     };
 
-    // La URL y la firma del webhook se administran desde Mercado Pago
-    // (configuración de pruebas o producción). No se fuerzan por preferencia:
-    // esa prioridad puede apuntar a una configuración distinta de la que emitió
-    // la Secret signature guardada en Render.
+    // En pruebas, cada preferencia debe apuntar al webhook de este servicio para
+    // no depender de la configuración global de Mercado Pago. Producción sigue
+    // usando exclusivamente la URL configurada en Mercado Pago.
+    if (paymentMode === 'test') {
+      preference.notification_url = `${publicBaseUrl}/webhook`;
+    }
 
     if (paymentMode === 'test') {
       const checkoutOrder = {
