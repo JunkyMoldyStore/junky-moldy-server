@@ -89,7 +89,13 @@ function webhookIsValid(req) {
   if (!values.ts || !values.v1) {
     return { valid: false, reason: 'incomplete_signature', hasRequestId: Boolean(requestId), hasPaymentId: Boolean(paymentId) };
   }
-  const template = `id:${paymentId};request-id:${requestId};ts:${values.ts};`;
+  // El SDK oficial omite el par `request-id` del manifiesto cuando Mercado
+  // Pago no envía ese encabezado. Agregarlo vacío cambia el HMAC y rechaza
+  // notificaciones legítimas como las de Checkout Pro en modo prueba.
+  const manifest = [`id:${paymentId}`];
+  if (requestId) manifest.push(`request-id:${requestId}`);
+  manifest.push(`ts:${values.ts}`);
+  const template = `${manifest.join(';')};`;
   const expected = crypto.createHmac("sha256", secret).update(template).digest("hex");
   const received = Buffer.from(values.v1, "hex");
   const comparison = Buffer.from(expected, "hex");

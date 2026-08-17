@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- La validación de firmas de Webhooks ahora omite `request-id` del manifiesto HMAC cuando Mercado Pago no envía ese encabezado, según el comportamiento del SDK oficial. Esto evita rechazar con 401 pagos legítimos de Checkout Pro en modo prueba, sin aceptar firmas inválidas.
 - Cuando se elige retiro en persona, el servidor descarta dirección, ciudad y notas para que datos de un envío anterior nunca se asocien al nuevo pedido.
 - La simulación oficial de Webhooks de Mercado Pago responde exitosamente sin intentar consultar su identificador ficticio `123456` como si fuera un pago real.
 - El webhook de Mercado Pago ahora valida exclusivamente el `data.id` firmado en la URL y responde correctamente a comprobaciones incompletas, sin generar reintentos innecesarios.
