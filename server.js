@@ -232,12 +232,10 @@ app.post("/crear-preferencia", async (req, res) => {
       auto_return: "approved",
     };
 
-    // En pruebas, cada preferencia debe apuntar al webhook de este servicio para
-    // no depender de la configuración global de Mercado Pago. Producción sigue
-    // usando exclusivamente la URL configurada en Mercado Pago.
-    if (paymentMode === 'test') {
-      preference.notification_url = `${publicBaseUrl}/webhook?source_news=webhooks`;
-    }
+    // Las preferencias de prueba usan la configuración global de Webhooks de
+    // la aplicación "Junky Moldy Pruebas". Forzar notification_url aquí hacía
+    // que Checkout Pro usara un circuito de firma diferente al que valida la
+    // aplicación. Producción no cambia.
 
     if (paymentMode === 'test') {
       const checkoutOrder = {

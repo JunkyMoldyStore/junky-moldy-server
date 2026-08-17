@@ -10,6 +10,7 @@
 
 ### Fixed
 
+- Las preferencias de prueba ya no fuerzan una `notification_url` propia: usan el Webhook global firmado de la aplicación aislada `Junky Moldy Pruebas`, cuya simulación oficial validó con `200`. Producción no cambia.
 - El diagnóstico temporal de Webhooks de prueba ahora registra el manifiesto HMAC exacto y el indicador `live_mode` recibido, sin mostrar secretos ni el cuerpo completo; permite comparar un único evento rechazado con el soporte oficial de Mercado Pago.
 - El diagnóstico temporal incluye una huella SHA-256 truncada de la clave que Render cargó, para comprobar de forma segura que coincide con la clave configurada en Mercado Pago sin mostrarla ni transmitirla.
 - Se agregó diagnóstico temporal de firmas inválidas, habilitado únicamente con `PAYMENT_MODE=test` y `WEBHOOK_DIAGNOSTICS=true`, que registra encabezados y URL técnicos recibidos sin exponer secretos, credenciales, cuerpo del pedido ni datos personales; producción no cambia.
