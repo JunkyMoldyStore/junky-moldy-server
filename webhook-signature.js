@@ -32,12 +32,20 @@ export function validateWebhookSignature({ signature, requestId, dataId, secret 
   const manifest = [`id:${normalizedDataId}`];
   if (normalizedRequestId) manifest.push(`request-id:${normalizedRequestId}`);
   manifest.push(`ts:${timestamp}`);
+  const manifestValue = `${manifest.join(';')};`;
   const expectedHash = crypto
     .createHmac('sha256', normalizedSecret)
-    .update(`${manifest.join(';')};`)
+    .update(manifestValue)
     .digest('hex');
 
   const valid = Buffer.byteLength(expectedHash) === Buffer.byteLength(receivedHash)
     && crypto.timingSafeEqual(Buffer.from(expectedHash), Buffer.from(receivedHash));
-  return { valid, reason: valid ? 'valid' : 'invalid_signature', hasTimestamp: true };
+  return {
+    valid,
+    reason: valid ? 'valid' : 'invalid_signature',
+    hasTimestamp: true,
+    // No contiene la clave ni la firma; se registra únicamente bajo el
+    // diagnóstico temporal de pruebas para contrastarlo con Mercado Pago.
+    manifest: manifestValue,
+  };
 }

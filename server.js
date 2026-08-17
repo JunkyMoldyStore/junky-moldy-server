@@ -303,6 +303,8 @@ app.post("/webhook", async (req, res) => {
         xRequestId: req.get('x-request-id') || '',
         originalUrl: req.originalUrl,
         dataId: req.query['data.id'] || '',
+        manifest: verification.manifest || '',
+        liveMode: req.body?.live_mode === true,
       });
     }
     console.warn('Webhook rechazado', {
