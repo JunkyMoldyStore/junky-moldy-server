@@ -4,6 +4,9 @@
 
 ### Security
 
+- El backend migra del SDK legado de Mercado Pago 1.x al SDK oficial 3.4.0. Se eliminan las dependencias transitivas vulnerables del cliente anterior y las preferencias y consultas de pago usan `MercadoPagoConfig`, `Preference` y `Payment`.
+- Se incorpora `package-lock.json` para que Render instale exactamente las versiones auditadas en lugar de resolver versiones distintas en cada despliegue.
+
 - El backend restringe CORS a los orígenes publicados, la vista previa del CMS y entornos locales/LAN; se pueden agregar dominios futuros mediante `ALLOWED_ORIGINS` sin incluir secretos.
 - Las solicitudes JSON se limitan a 100 KB y los errores de origen, tamaño o formato se responden de forma controlada.
 - Se documentó como requisito antes de producción que los precios y el stock deben validarse contra el CMS al integrar la web pública definitiva; el carrito histórico aún los envía desde el navegador.

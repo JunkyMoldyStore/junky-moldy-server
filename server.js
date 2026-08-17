@@ -1,5 +1,5 @@
 import express from "express";
-import mercadopago from "mercadopago";
+import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
 import cors from "cors";
 import crypto from "node:crypto";
 import { extractWebhookDataId, validateWebhookSignature } from './webhook-signature.js';
@@ -47,7 +47,11 @@ app.use(cors({
 app.use(express.json({ limit: '100kb' }));
 
 // Esta credencial vive únicamente en las variables de entorno de Render.
-mercadopago.configure({ access_token: accessToken });
+// El SDK oficial moderno no guarda configuración global: cada cliente recibe
+// la credencial al crearse, evitando que se mezcle entre entornos.
+const mercadoPagoClient = new MercadoPagoConfig({ accessToken });
+const preferences = new Preference(mercadoPagoClient);
+const payments = new Payment(mercadoPagoClient);
 
 app.get('/resultado-prueba', async (req, res) => {
   if (paymentMode !== 'test') return res.sendStatus(404);
@@ -62,8 +66,8 @@ app.get('/resultado-prueba', async (req, res) => {
         testOrders.delete(testOrderId);
         console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId), testOrderId });
       } else {
-        const paymentResponse = await mercadopago.payment.findById(paymentId);
-        await syncOrderToCms(paymentResponse.body);
+        const payment = await payments.get({ id: String(paymentId) });
+        await syncOrderToCms(payment);
         console.log('Pago de prueba sincronizado desde retorno', { paymentId: String(paymentId) });
       }
     } catch (error) {
@@ -263,7 +267,7 @@ app.post("/crear-preferencia", async (req, res) => {
       testOrders.set(pedidoId, checkoutOrder);
     }
 
-    const response = await mercadopago.preferences.create(preference);
+    const response = await preferences.create({ body: preference });
     if (paymentMode === 'production') await fetch("https://script.google.com/macros/s/AKfycbybJlWQkfmxTq4hGcTOj9-zDwJDFN8vJ6DDdcrFa4xtgaFUB69MXqYoYVMQS1VVxNlhzg/exec", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -282,7 +286,7 @@ app.post("/crear-preferencia", async (req, res) => {
       }),
     });
 
-    res.json({ init_point: response.body.init_point, payment_mode: paymentMode });
+    res.json({ init_point: response.init_point, payment_mode: paymentMode });
   } catch (error) {
     console.error("Error creando preferencia:", error.message);
     res.status(500).json({ error: "Error creando preferencia" });
@@ -331,8 +335,8 @@ app.post("/webhook", async (req, res) => {
   }
   try {
     console.log('Webhook de pago recibido', { paymentId: String(paymentId) });
-    const paymentResponse = await mercadopago.payment.findById(paymentId);
-    await syncOrderToCms(paymentResponse.body);
+    const payment = await payments.get({ id: String(paymentId) });
+    await syncOrderToCms(payment);
     console.log('Pago sincronizado desde webhook', { paymentId: String(paymentId) });
     return res.sendStatus(200);
   } catch (error) {
