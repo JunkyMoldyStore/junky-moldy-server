@@ -2,7 +2,7 @@ import express from "express";
 import mercadopago from "mercadopago";
 import cors from "cors";
 import crypto from "node:crypto";
-import { validateWebhookSignature } from './webhook-signature.js';
+import { extractWebhookDataId, validateWebhookSignature } from './webhook-signature.js';
 
 const accessToken = process.env.MP_ACCESS_TOKEN;
 if (!accessToken) throw new Error("Falta configurar MP_ACCESS_TOKEN en Render.");
@@ -76,7 +76,7 @@ app.get('/resultado-prueba', async (req, res) => {
 function webhookIsValid(req) {
   const signature = req.get("x-signature");
   const requestId = req.get("x-request-id") || "";
-  const paymentId = String(req.query["data.id"] || "");
+  const paymentId = extractWebhookDataId(req);
   // El ajuste se limita al servicio de pruebas. Producción conserva la
   // normalización previa hasta validar su integración por separado.
   const signedPaymentId = paymentMode === 'test' ? paymentId : paymentId.toLowerCase();
@@ -294,7 +294,7 @@ app.post("/webhook", async (req, res) => {
   // Mercado Pago puede enviar comprobaciones sin datos de pago. Se ignoran sin
   // responder error, pero un pago real siempre debe pasar la firma HMAC.
   if (type !== 'payment') return res.sendStatus(200);
-  const paymentId = String(req.query["data.id"] || '');
+  const paymentId = extractWebhookDataId(req);
   if (!paymentId) {
     console.info('Webhook de comprobación ignorado', { type, hasSignature: Boolean(req.get('x-signature')) });
     return res.sendStatus(200);
