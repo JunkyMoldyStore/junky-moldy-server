@@ -11,6 +11,7 @@
 ### Fixed
 
 - El diagnóstico temporal de Webhooks de prueba ahora registra el manifiesto HMAC exacto y el indicador `live_mode` recibido, sin mostrar secretos ni el cuerpo completo; permite comparar un único evento rechazado con el soporte oficial de Mercado Pago.
+- El diagnóstico temporal incluye una huella SHA-256 truncada de la clave que Render cargó, para comprobar de forma segura que coincide con la clave configurada en Mercado Pago sin mostrarla ni transmitirla.
 - Se agregó diagnóstico temporal de firmas inválidas, habilitado únicamente con `PAYMENT_MODE=test` y `WEBHOOK_DIAGNOSTICS=true`, que registra encabezados y URL técnicos recibidos sin exponer secretos, credenciales, cuerpo del pedido ni datos personales; producción no cambia.
 - Las preferencias de prueba agregan `source_news=webhooks` a `notification_url` para que Mercado Pago envíe Webhooks firmados en lugar de notificaciones IPN; producción no cambia.
 - En `PAYMENT_MODE=test`, la validación manual de Webhooks replica el validador oficial actual de Node: conserva exactamente `data.id`, normaliza las claves de `x-signature`, omite campos ausentes del manifiesto y mantiene la comparación HMAC-SHA256 en tiempo constante. Producción conserva su comportamiento anterior.

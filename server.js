@@ -1,6 +1,7 @@
 import express from "express";
 import mercadopago from "mercadopago";
 import cors from "cors";
+import crypto from "node:crypto";
 import { validateWebhookSignature } from './webhook-signature.js';
 
 const accessToken = process.env.MP_ACCESS_TOKEN;
@@ -85,6 +86,11 @@ function webhookIsValid(req) {
     ...result,
     hasRequestId: Boolean(requestId),
     hasPaymentId: Boolean(paymentId),
+    // Huella corta e irreversible, sólo para comprobar que Render cargó la
+    // misma clave que figura en Mercado Pago. Nunca se registra la clave.
+    secretFingerprint: secret
+      ? crypto.createHash('sha256').update(secret).digest('hex').slice(0, 12)
+      : '',
   };
 }
 
@@ -305,6 +311,7 @@ app.post("/webhook", async (req, res) => {
         dataId: req.query['data.id'] || '',
         manifest: verification.manifest || '',
         liveMode: req.body?.live_mode === true,
+        secretFingerprint: verification.secretFingerprint,
       });
     }
     console.warn('Webhook rechazado', {
