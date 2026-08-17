@@ -228,7 +228,7 @@ app.post("/crear-preferencia", async (req, res) => {
     // no depender de la configuración global de Mercado Pago. Producción sigue
     // usando exclusivamente la URL configurada en Mercado Pago.
     if (paymentMode === 'test') {
-      preference.notification_url = `${publicBaseUrl}/webhook`;
+      preference.notification_url = `${publicBaseUrl}/webhook?source_news=webhooks`;
     }
 
     if (paymentMode === 'test') {
