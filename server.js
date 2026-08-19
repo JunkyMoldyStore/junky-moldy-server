@@ -15,6 +15,7 @@ if (paymentMode === 'test' && !publicBaseUrl) throw new Error('Falta configurar 
 const trustedOrigins = new Set([
   'https://junkymoldystore.github.io',
   'https://junky-moldy-cms.junkymoldy.workers.dev',
+  'https://junky-moldy-web-preview.junkymoldy.workers.dev',
   ...String(process.env.ALLOWED_ORIGINS || '').split(',').map((origin) => origin.trim()).filter(Boolean),
 ]);
 // Solo para el circuito de prueba: conserva el pedido durante el checkout de

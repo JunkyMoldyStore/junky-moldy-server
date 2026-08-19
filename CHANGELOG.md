@@ -13,6 +13,7 @@
 
 ### Fixed
 
+- El checkout de prueba autoriza explícitamente el origen de la vista previa pública de Cloudflare; así puede crear una preferencia de Mercado Pago sin ampliar CORS a dominios desconocidos.
 - La validación manual de Webhooks acepta `ts` y `v1` en cualquier orden, obtiene el ID desde query o body, exige el manifiesto completo `id;request-id;ts` y valida el HMAC hexadecimal con comparación de tiempo constante; la sincronización de respaldo por retorno permanece intacta.
 - Las preferencias de prueba ya no fuerzan una `notification_url` propia: usan el Webhook global firmado de la aplicación aislada `Junky Moldy Pruebas`, cuya simulación oficial validó con `200`. Producción no cambia.
 - El diagnóstico temporal de Webhooks de prueba ahora registra el manifiesto HMAC exacto y el indicador `live_mode` recibido, sin mostrar secretos ni el cuerpo completo; permite comparar un único evento rechazado con el soporte oficial de Mercado Pago.
