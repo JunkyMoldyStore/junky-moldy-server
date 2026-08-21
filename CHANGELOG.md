@@ -32,6 +32,7 @@
 
 ### Changed
 
+- Las URL de retorno de Mercado Pago pueden usar `STOREFRONT_BASE_URL`, separada de la URL técnica de Render. Así el comprador vuelve a una pantalla pública de Junky Moldy luego de pagar, mientras el servidor continúa recibiendo Webhooks en su propia URL.
 - Las alertas de Telegram y email incluyen teléfono y correo del comprador cuando el checkout los recibió.
 - Las alertas y la sincronización de pedidos conservan la dirección indicada y las notas adicionales del checkout.
 - En pruebas, el pedido se guarda como pendiente antes de abrir Mercado Pago; así dirección y ciudad no dependen de la memoria temporal de Render ni del contenido parcial del webhook.

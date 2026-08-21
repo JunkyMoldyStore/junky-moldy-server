@@ -11,6 +11,9 @@ if (!['production', 'test'].includes(paymentMode)) throw new Error('PAYMENT_MODE
 const webhookDiagnostics = paymentMode === 'test'
   && String(process.env.WEBHOOK_DIAGNOSTICS || '').trim().toLowerCase() === 'true';
 const publicBaseUrl = String(process.env.PUBLIC_BASE_URL || '').replace(/\/$/, '');
+// Dirección de la tienda que el comprador ve. Se mantiene separada de
+// PUBLIC_BASE_URL, que identifica a este servidor de pagos y Webhooks.
+const storefrontBaseUrl = String(process.env.STOREFRONT_BASE_URL || '').replace(/\/$/, '');
 if (paymentMode === 'test' && !publicBaseUrl) throw new Error('Falta configurar PUBLIC_BASE_URL en Render para PAYMENT_MODE=test.');
 const trustedOrigins = new Set([
   'https://junkymoldystore.github.io',
@@ -225,7 +228,13 @@ app.post("/crear-preferencia", async (req, res) => {
         notas: cliente.notas || "",
       },
       external_reference: pedidoId,
-      back_urls: paymentMode === 'test' && publicBaseUrl ? {
+      back_urls: storefrontBaseUrl ? {
+        success: `${storefrontBaseUrl}/resultado-pago.html?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
+        failure: `${storefrontBaseUrl}/resultado-pago.html?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
+        pending: `${storefrontBaseUrl}/resultado-pago.html?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
+      } : paymentMode === 'test' && publicBaseUrl ? {
+        // Conserva la página técnica mientras aún no se configura la tienda
+        // pública de prueba en Render.
         success: `${publicBaseUrl}/resultado-prueba?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
         failure: `${publicBaseUrl}/resultado-prueba?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
         pending: `${publicBaseUrl}/resultado-prueba?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
