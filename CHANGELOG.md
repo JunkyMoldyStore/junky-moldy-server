@@ -4,6 +4,7 @@
 
 ### Security
 
+- Cada checkout conserva en Mercado Pago sólo los IDs de variantes y cantidades necesarios para que el CMS valide y descuente inventario una vez que el pago se aprueba. No se agregan datos personales ni secretos.
 - El backend migra del SDK legado de Mercado Pago 1.x al SDK oficial 3.4.0. Se eliminan las dependencias transitivas vulnerables del cliente anterior y las preferencias y consultas de pago usan `MercadoPagoConfig`, `Preference` y `Payment`.
 - Se incorpora `package-lock.json` para que Render instale exactamente las versiones auditadas en lugar de resolver versiones distintas en cada despliegue.
 

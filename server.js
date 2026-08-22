@@ -110,6 +110,27 @@ function paymentStatus(status) {
   return "pending";
 }
 
+function inventoryLinesFromCart(cart) {
+  const quantities = new Map();
+  for (const item of cart) {
+    const parts = String(item?.item_id || '').split(':');
+    const variantId = parts.length === 2 ? parts[1].trim() : '';
+    const quantity = Number(item?.cantidad);
+    if (!variantId || !Number.isSafeInteger(quantity) || quantity < 1) {
+      throw new Error('El carrito contiene un producto sin una variante válida');
+    }
+    quantities.set(variantId, (quantities.get(variantId) || 0) + quantity);
+  }
+  return [...quantities].map(([variant_id, quantity]) => ({ variant_id, quantity }));
+}
+
+function inventoryLinesFromMetadata(metadata) {
+  const value = metadata?.line_items;
+  if (Array.isArray(value)) return value;
+  if (typeof value !== 'string') return [];
+  try { return JSON.parse(value); } catch { return []; }
+}
+
 async function syncOrderToCms(payment) {
   const metadata = payment.metadata || {};
   return postOrderToCms({
@@ -123,6 +144,7 @@ async function syncOrderToCms(payment) {
     shipping_address: { address: metadata.direccion || "", city: metadata.ciudad || "" },
     delivery_type: String(metadata.entrega || "").toLowerCase().includes("env") ? "shipping" : "pickup",
     notes: metadata.notas || "",
+    line_items: inventoryLinesFromMetadata(metadata),
   });
 }
 
@@ -199,6 +221,8 @@ app.post("/crear-preferencia", async (req, res) => {
       return res.status(400).json({ error: "Carrito vacío" });
     }
 
+    const inventoryLines = inventoryLinesFromCart(carrito);
+
     const items = carrito.map((product) => ({
       title: product.nombre,
       unit_price: Number(product.precio),
@@ -226,6 +250,9 @@ app.post("/crear-preferencia", async (req, res) => {
         direccion: cliente.direccion || "",
         ciudad: cliente.ciudad || "",
         notas: cliente.notas || "",
+        // El pago conserva únicamente IDs de variantes y cantidades. El CMS
+        // valida la disponibilidad y descuenta el stock recién al aprobarse.
+        line_items: JSON.stringify(inventoryLines),
       },
       external_reference: pedidoId,
       back_urls: storefrontBaseUrl ? {
@@ -263,6 +290,7 @@ app.post("/crear-preferencia", async (req, res) => {
         shipping_address: { address: cliente.direccion || '', city: cliente.ciudad || '' },
         delivery_type: String(entrega || '').toLowerCase().includes('env') ? 'shipping' : 'pickup',
         notes: cliente.notas || '',
+        line_items: inventoryLines,
       };
       // Persistir antes de redirigir a Mercado Pago evita perder datos del
       // formulario si Render se reinicia o el webhook llega con datos parciales.
