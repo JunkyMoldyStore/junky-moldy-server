@@ -57,9 +57,20 @@ const mercadoPagoClient = new MercadoPagoConfig({ accessToken });
 const preferences = new Preference(mercadoPagoClient);
 const payments = new Payment(mercadoPagoClient);
 
+function publicResultUrl(state, orderId) {
+  if (!storefrontBaseUrl) return '';
+  const url = new URL(`${storefrontBaseUrl}/resultado-pago.html`);
+  url.searchParams.set('estado', state);
+  if (orderId) url.searchParams.set('pedido', orderId);
+  return url.toString();
+}
+
 app.get('/resultado-prueba', async (req, res) => {
   if (paymentMode !== 'test') return res.sendStatus(404);
-  const state = String(req.query.estado || 'pending');
+  const requestedState = String(req.query.estado || 'pending');
+  const state = ['approved', 'rejected', 'pending'].includes(requestedState)
+    ? requestedState
+    : 'pending';
   const paymentId = req.query.payment_id || req.query.collection_id;
   const testOrderId = String(req.query.pedido || '');
   if (state === 'approved' && paymentId) {
@@ -78,6 +89,11 @@ app.get('/resultado-prueba', async (req, res) => {
       console.error('Error sincronizando pago de prueba desde retorno:', error.message);
     }
   }
+  // En pruebas, Mercado Pago debe volver primero a este servidor: es el
+  // respaldo cuando un webhook de prueba no confirma el pago. Sólo después
+  // de sincronizar se redirige a la pantalla pública que ve el comprador.
+  const publicUrl = publicResultUrl(state, testOrderId);
+  if (publicUrl) return res.redirect(302, publicUrl);
   res.type('html').send(`<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Resultado de prueba</title><body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#11130e;color:#f1e7b1;font:18px Georgia,serif"><main style="max-width:520px;padding:32px;border:1px solid #b99a45;background:#181a13;text-align:center"><p style="color:#d8bd54;letter-spacing:.12em">JUNKY MOLDY · PRUEBA</p><h1>Pago de prueba: ${state}</h1><p>${state === 'approved' && paymentId ? 'Se intentó sincronizar este pago de prueba con el CMS. Revisá Pedidos.' : 'No se realizó ningún cobro real ni se creó un pedido de venta.'}</p></main></body></html>`);
 });
 
@@ -255,16 +271,16 @@ app.post("/crear-preferencia", async (req, res) => {
         line_items: JSON.stringify(inventoryLines),
       },
       external_reference: pedidoId,
-      back_urls: storefrontBaseUrl ? {
-        success: `${storefrontBaseUrl}/resultado-pago.html?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
-        failure: `${storefrontBaseUrl}/resultado-pago.html?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
-        pending: `${storefrontBaseUrl}/resultado-pago.html?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
-      } : paymentMode === 'test' && publicBaseUrl ? {
-        // Conserva la página técnica mientras aún no se configura la tienda
-        // pública de prueba en Render.
+      back_urls: paymentMode === 'test' && publicBaseUrl ? {
+        // El retorno de prueba pasa primero por este servidor para confirmar
+        // el pago y descontar inventario; luego redirige a la tienda pública.
         success: `${publicBaseUrl}/resultado-prueba?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
         failure: `${publicBaseUrl}/resultado-prueba?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
         pending: `${publicBaseUrl}/resultado-prueba?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
+      } : storefrontBaseUrl ? {
+        success: `${storefrontBaseUrl}/resultado-pago.html?estado=approved&pedido=${encodeURIComponent(pedidoId)}`,
+        failure: `${storefrontBaseUrl}/resultado-pago.html?estado=rejected&pedido=${encodeURIComponent(pedidoId)}`,
+        pending: `${storefrontBaseUrl}/resultado-pago.html?estado=pending&pedido=${encodeURIComponent(pedidoId)}`,
       } : {
         success: "https://junkymoldystore.github.io/junky-moldy-server/exito.html",
         failure: "https://junkymoldystore.github.io/junky-moldy-server/error.html",
